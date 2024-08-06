@@ -1,6 +1,23 @@
 {
+  "name": "node-log-service",
+  "version": "1.0.0",
+  "description": "logging service across multiple data systems: GCP, SQL DB, Mongo DB, etc.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/CloudSharp-Systems/NodeLogService.git"
+  },
+  "author": "Shu-Yuan Yang",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/CloudSharp-Systems/NodeLogService/issues"
+  },
+  "homepage": "https://github.com/CloudSharp-Systems/NodeLogService#readme",
   "dependencies": {
-    "@google-cloud/logging": "^11.1.0",
+    "@google-cloud/logging": "^11.2.0",
     "mongodb": "^6.8.0"
   }
 }

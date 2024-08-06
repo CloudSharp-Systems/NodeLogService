@@ -1,8 +1,14 @@
-const GCPLogger = require("./gcp_logging");
-const CONFIG = require("./config.json");
+//const GCPLogger = require("./gcp_logging");
+//const CONFIG = require("./config.json");
+const { get_new_hash_id } = require("./hash_id");
 
-var logger = new GCPLogger(CONFIG.projectId, "credentials/gcp_service_account_secrets.json", CONFIG.taskName);
+const ID = get_new_hash_id("TestNPM");
+console.log(ID);
 
+//var logger = new GCPLogger(CONFIG.projectId, "credentials/gcp_service_account_secrets.json", CONFIG.taskName);
+
+
+/*
 const metadata = {
 	labels: { log_type: CONFIG.gcpConfig.log_type },
 	resource: {
@@ -15,3 +21,4 @@ const metadata = {
 const text = "Module log test.";
 
 logger.writeLogEntry(CONFIG.taskName, metadata, text);
+*/
