@@ -18,6 +18,8 @@
   "homepage": "https://github.com/CloudSharp-Systems/NodeLogService#readme",
   "dependencies": {
     "@google-cloud/logging": "^11.2.0",
-    "mongodb": "^6.8.0"
+    "mongodb": "^6.8.0",
+    "mssql": "^11.0.1",
+    "uuid": "^10.0.0"
   }
 }
