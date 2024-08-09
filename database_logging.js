@@ -44,19 +44,24 @@ class DBLogger {
 	// logMetadata must satisfy the prototype { insertId: string, severity: string, resource: object }
         async writeLogEntry(dbClient, programData, logMetadata, logNote) {
 
-		const current_time = new Date();
-		const formatted_time = current_time.toISOString()
-                	.replace(/-/g, '')
-                	.replace(/:/g, '')
-                	.replace('T', '')
-                	.split('.')[0];
+		const transaction = new sql.Transaction(dbClient);
+		try {
+			await transaction.begin();
 
-		const result = await dbClient.request()
+			const current_time = new Date();
+			const formatted_time = current_time.toISOString()
+                		.replace(/-/g, '')
+                		.replace(/:/g, '')
+                		.replace('T', '')
+                		.split('.')[0];
+			const severity = DBLogger.#SEVERITY_MAPPER[logMetadata.severity];
+
+			const insert_result = await transaction.request()
 				.input("log_id", sql.VarChar, `${formatted_time}_${uuid.v4()}`)
 				.input("app_id", sql.VarChar, programData.projectId)
 				.input("system_name", sql.VarChar, os.hostname())
 				.input("trace_id", sql.VarChar, logMetadata.insertId)
-				.input("record_type", sql.VarChar, DBLogger.#SEVERITY_MAPPER[logMetadata.severity])
+				.input("record_type", sql.VarChar, severity)
 				.input("record_key", sql.VarChar, programData.programType)
 				.input("record_value1", sql.VarChar, `program: ${programData.programName}`)
 				.input("record_value2", sql.VarChar, `logName: projects/${programData.projectId}/logs/${programData.programName}`)
@@ -69,6 +74,26 @@ class DBLogger {
 				.input("edit_time", sql.DateTime, current_time)
 				.query(`INSERT INTO [APPLICATIONS].[TB_CENTRAL_SYSTEM_LOG]
 					SELECT @log_id, @app_id, @system_name, @trace_id, @record_type, @record_key, @record_value1, @record_value2, @record_value3, @record_value4, @record_value5, @record_message, @record_note, @edit_by, @edit_time`);
+
+			if (severity != DBLogger.#SEVERITY_MAPPER.NOTE) {
+				const status_result = await transaction.request()
+					.input("trace_id", sql.VarChar, logMetadata.insertId)
+					.input("edit_time", sql.DateTime, current_time)
+					.input("record_note", sql.VarChar, logNote)
+					.input("edit_by", sql.VarChar, programData.programName)
+					.input("program_name", sql.VarChar, programData.programName)
+					.input("app_id", sql.VarChar, programData.projectId)
+					.query(`UPDATE APPLICATIONS.TB_PROGRAM_STATUS
+						SET LAST_TRACE_ID=@trace_id, LAST_LOG_TIME=@edit_time, NOTES=@record_note, EDIT_BY=@edit_by, EDIT_TIME=@edit_time
+						WHERE PROGRAM_ID=@program_name AND APP_ID=@app_id`);
+			}
+
+			await transaction.commit();
+		} catch (err) {
+			await transaction.rollback();
+			throw err;
+		}
+
         }
 
 

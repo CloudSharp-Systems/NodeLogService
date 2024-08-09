@@ -86,7 +86,7 @@ const metadata = {
 
 var log = {
 	metadata: metadata,
-	content: `Logged with pipelined logger. ${new Date()}.`,
+	content: `Logged with pipelined logger transaction. ${new Date()}.`,
 	note: "Test pipelined logging, inconsequential."
 };
 pipelinedLogger.writeLogEntry(log);
