@@ -78,13 +78,14 @@ class DBLogger {
 			if (severity != DBLogger.#SEVERITY_MAPPER.NOTE) {
 				const status_result = await transaction.request()
 					.input("trace_id", sql.VarChar, logMetadata.insertId)
+					.input("severity", sql.VarChar, severity)
 					.input("edit_time", sql.DateTime, current_time)
 					.input("record_note", sql.VarChar, logNote)
 					.input("edit_by", sql.VarChar, programData.programName)
 					.input("program_name", sql.VarChar, programData.programName)
 					.input("app_id", sql.VarChar, programData.projectId)
 					.query(`UPDATE APPLICATIONS.TB_PROGRAM_STATUS
-						SET LAST_TRACE_ID=@trace_id, LAST_LOG_TIME=@edit_time, NOTES=@record_note, EDIT_BY=@edit_by, EDIT_TIME=@edit_time
+						SET LAST_TRACE_ID=@trace_id, PROGRAM_STATUS=@severity, LAST_LOG_TIME=@edit_time, NOTES=@record_note, EDIT_BY=@edit_by, EDIT_TIME=@edit_time
 						WHERE PROGRAM_ID=@program_name AND APP_ID=@app_id`);
 			}
 
