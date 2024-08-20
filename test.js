@@ -69,7 +69,8 @@ run();
 
 credentials = {
 	GCP: "credentials/gcp_service_account_secrets.json",
-	SQLDB: "credentials/mssql_connection_config.json"
+	SQLDB: "credentials/mssql_connection_config.json",
+	SITEDB: "credentials/mssql_connection_config.json"
 };
 var pipelinedLogger = new PipelinedLogger(CONFIG, credentials);
 
@@ -84,9 +85,19 @@ const metadata = {
         severity: "INFO",
 };
 
+const mockSystemHealthTraceRecord = {
+	host_IP: "CloudSharp-Mongo",
+	port: "27017",
+	system_status: "NORMAL",
+	trace_ID: `CloudSharpWebMonitor_CloudSharp-Mongo_${new Date()}`,
+	message: "MOCK get success - 200",
+	latency: 6.389
+};
+
 var log = {
 	metadata: metadata,
-	content: `Logged with pipelined logger transaction. ${new Date()}.`,
-	note: "Test pipelined logging, inconsequential."
+	content: `Test logged with host status update. ${new Date()}.`,
+	note: "Test pipelined logging, inconsequential.",
+	systemHealthTraceRecord: mockSystemHealthTraceRecord
 };
 pipelinedLogger.writeLogEntry(log);

@@ -98,6 +98,39 @@ class DBLogger {
         }
 
 
+
+	// programData must satisfy the prototype { programName: string }
+        // systemHealthTraceRecord must satisfy the prototype {
+	//	host_IP: string,
+	//	port: string,
+	//	system_status: "NORMAL"|"ERROR"
+	//	trace_ID: string
+	//	message: string
+	//	recorded_by: string (optional)
+	//	latency: number
+	// }
+        async writeHostStatusLog(dbClient, programData, systemHealthTraceRecord) {
+		const transaction = new sql.Transaction(dbClient);
+		try {
+			await transaction.begin();
+			const status_result = await transaction.request()
+                                        .input("HOST_IP", sql.VarChar, systemHealthTraceRecord.host_IP)
+                                        .input("PORT", sql.VarChar, systemHealthTraceRecord.port)
+                                        .input("STATUS", sql.VarChar, systemHealthTraceRecord.system_status)
+                                        .input("TRACE_ID", sql.VarChar, systemHealthTraceRecord.trace_ID)
+                                        .input("INPUT_MESSAGE", sql.VarChar, systemHealthTraceRecord.message)
+                                        .input("LATENCY", sql.Float, systemHealthTraceRecord.latency)
+                                        .input("EDIT_BY", sql.VarChar, programData.programName)
+                                        .query(`EXEC NETWORK.UPDATE_HOST_STATUS @HOST_IP, @PORT, @STATUS, @EDIT_BY, @TRACE_ID, @INPUT_MESSAGE, @LATENCY`);
+
+			await transaction.commit();
+		} catch (err) {
+			await transaction.rollback();
+			throw err;
+		}
+	}
+
+
 }
 
 

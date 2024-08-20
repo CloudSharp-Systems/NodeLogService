@@ -16,6 +16,7 @@ class PipeLinedLogger {
 		this._gcp_logger = null;
 		this._sqldb_logger = null;
 		this._mongodb_logger = null;
+		this._sitedb_logger = null;
 
 		if (this._programData.projectId.GCP) {
 			const GCPProgramData = { ...programData, projectId: programData.projectId.GCP };
@@ -25,10 +26,14 @@ class PipeLinedLogger {
 		if (this._programData.projectId.SQLDB) {
 			this._sqldb_logger = new DBLogger(credentials.SQLDB, this._loggerStateManager);
 		}
+
+		if (this._programData.projectId.SITEDB) {
+			this._sitedb_logger = new DBLogger(credentials.SITEDB, this._loggerStateManager);
+		}
 	}
 
 
-	// log must satisfy the prototype: { metadata: obj, content: string|object, note: string }
+	// log must satisfy the prototype: { metadata: obj, content: string|object, note: string, systemHealthTraceRecord: undefined|object }
 	async writeLogEntry(log) {
 		if (this._gcp_logger) {
 			await this._gcp_logger.writeLogEntry(log.metadata, log.content);
@@ -40,6 +45,14 @@ class PipeLinedLogger {
         		await this._sqldb_logger.client_run(async (dbClient) => {
                 		await this._sqldb_logger.writeLogEntry(dbClient, SQLDBProgramData, this._loggerStateManager.getState(GCPLogger.LOG_METADATA_STATE), log.note);
         		});
+		}
+
+		if (this._sitedb_logger) {
+			const programDataRef = this._programData;
+			const SITEDBProgramData = { ...programDataRef, projectId: programDataRef.projectId.SITEDB };
+			await this._sitedb_logger.client_run(async (dbClient) => {
+				await this._sitedb_logger.writeHostStatusLog(dbClient, SITEDBProgramData, log.systemHealthTraceRecord);
+			});
 		}
 
         	this._loggerStateManager.clearStates();
