@@ -28,7 +28,8 @@ class PipeLinedLogger {
 		}
 
 		if (this._programData.projectId.SITEDB) {
-			this._sitedb_logger = new DBLogger(credentials.SITEDB, this._loggerStateManager);
+			if (credentials.SITEDB == credentials.SQLDB) this._sitedb_logger = this._sqldb_logger;
+			else this._sitedb_logger = new DBLogger(credentials.SITEDB, this._loggerStateManager);
 		}
 	}
 
