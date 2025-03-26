@@ -2,7 +2,7 @@ const GCPLogger = require("./gcp_logging");
 const { get_new_hash_id } = require("./hash_id");
 const uuid = require('uuid');
 const LoggerStateManager = require("./logger_state_manager");
-const DBLogger = require("./database_logging");
+const { DBLogger } = require("./database_logging");
 
 
 class PipeLinedLogger {

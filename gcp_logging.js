@@ -38,5 +38,5 @@ class GCPLogger {
 }
 
 
-
-module.exports = GCPLogger;
+exports.GCPLogger = GCPLogger;
+//module.exports = GCPLogger;
