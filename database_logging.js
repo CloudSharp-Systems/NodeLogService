@@ -98,16 +98,19 @@ function makeLogEntryParams(programData, logMetadata, logNote) {
 		"edit_time", current_time, Date
 	];
 
-	let program_status_param_lst = [
-		"trace_id", logMetadata.insertId, String,
-		"severity", severity, String,
-		"log_time", current_time, Date,
-		"record_note", logNote, String,
-		"edit_by", programData.programName, String,
-		"edit_time", current_time, Date,
-		"program_name", rogramData.programName, String,
-		"app_id", programData.projectId, String
-	];
+	let program_status_param_lst = null;
+	if (severity != DBLogger.SEVERITY_MAPPER.NOTE)
+		program_status_param_lst =
+		[
+			"trace_id", logMetadata.insertId, String,
+			"severity", severity, String,
+			"log_time", current_time, Date,
+			"record_note", logNote, String,
+			"edit_by", programData.programName, String,
+			"edit_time", current_time, Date,
+			"program_name", programData.programName, String,
+			"app_id", programData.projectId, String
+		];
 
 	return {
 		system_log_params: system_log_param_lst,
@@ -150,7 +153,7 @@ class MSSQLDBLogger extends DBLogger {
 	}
 
 	constructor(connectionConfigFileName, loggerStateManager=new LoggerStateManager()) {
-		super();
+		super(connectionConfigFileName, loggerStateManager);
     }
 
 	async client_run(job) {
@@ -174,7 +177,6 @@ class MSSQLDBLogger extends DBLogger {
 	}
 
 	build_request(db_request, params) {
-		let params = params_collection.system_log_params;
 		let pnames = new Array(Math.floor(params.length / 3));
 		for (let i = 0; i < pnames.length; ++i) {
 			let j = 3*i;
@@ -189,7 +191,7 @@ class MSSQLDBLogger extends DBLogger {
 
 	async writeLogEntry(dbClient, programData, logMetadata, logNote) {
 
-		this.transact(dbClient, async (transaction) => {
+		await this.transact(dbClient, async (transaction) => {
 
 			const params_collection = makeLogEntryParams(programData, logMetadata, logNote);
 			
@@ -200,7 +202,7 @@ class MSSQLDBLogger extends DBLogger {
 				SELECT @${pnames[0]}, @${pnames[1]}, @${pnames[2]}, @${pnames[3]}, @${pnames[4]}, @${pnames[5]}, @${pnames[6]}, @${pnames[7]}, @${pnames[8]}, @${pnames[9]}, @${pnames[10]}, @${pnames[11]}, @${pnames[12]}, @${pnames[13]}, @${pnames[14]}`
 			);
 
-			if (severity != DBLogger.SEVERITY_MAPPER.NOTE) {
+			if (params_collection.program_status_params) {
 				builder = this.build_request(transaction.request(), params_collection.program_status_params);
 				pnames = builder.param_names;
 				const status_result = await builder.request.query(
@@ -216,7 +218,7 @@ class MSSQLDBLogger extends DBLogger {
 
 	async writeHostStatusLog(dbClient, programData, systemHealthTraceRecord) {
 
-		this.transact(dbClient, async (transaction) => {
+		await this.transact(dbClient, async (transaction) => {
 			const params_collection = makeHostStatusLogParams();
 			let builder = this.build_request(transaction.request(), params_collection.host_status_log_params);
 			let pnames = builder.param_names; 
@@ -234,17 +236,82 @@ class MSSQLDBLogger extends DBLogger {
 
 class PGDBLogger extends DBLogger {
 	constructor(connectionConfigFileName, loggerStateManager=new LoggerStateManager()) {
-		super();
+		super(connectionConfigFileName, loggerStateManager);
     }
 
 	async client_run(job) {
-		let client = new pg.Client(this._connectionConfig);
-		let DBConnection = await client.connect(this._connectionConfig);
+		let dbClient = new pg.Client(this._connectionConfig);
+		await dbClient.connect();
 
-		await job(DBConnection);
+		await job(dbClient);
 
-		DBConnection.end();
+		dbClient.end();
 	}
+
+	async transact(dbClient, job) {
+		try {
+			await dbClient.query("BEGIN");
+			await job(dbClient);
+			await dbClient.query("COMMIT");
+		} catch (err) {
+			await dbClient.query("ROLLBACK");
+			throw err;
+		}
+	}
+
+	build_request(db_request, params) {
+		let pvalues = new Array(Math.floor(params.length / 3));
+		for (let i = 0; i < pvalues.length; ++i) {
+			let j = 3*i;
+			pvalues[i] = params[j+1];
+		}
+		return {
+			request: db_request,
+			param_values: pvalues
+		};
+	}
+
+	async writeLogEntry(dbClient, programData, logMetadata, logNote) {
+
+		await this.transact(dbClient, async (transaction) => {
+
+			const params_collection = makeLogEntryParams(programData, logMetadata, logNote);
+			
+			let builder = this.build_request(transaction, params_collection.system_log_params);
+			let pvalues = builder.param_values;
+			const insert_result = await builder.request.query(
+				`INSERT INTO applications.tb_central_system_log
+				SELECT $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15::timestamptz`
+			, pvalues);
+
+			if (params_collection.program_status_params) {
+				builder = this.build_request(transaction, params_collection.program_status_params);
+				pvalues = builder.param_values;
+				const status_result = await builder.request.query(
+					`UPDATE applications.tb_program_status
+					SET last_trace_id=$1, program_status=$2, last_log_time=$3::timestamptz, notes=$4, edit_by=$5, edit_time=$6::timestamptz
+					WHERE program_id=$7 AND app_id=$8`
+				, pvalues);
+			}
+		
+		});
+
+	}
+
+	async writeHostStatusLog(dbClient, programData, systemHealthTraceRecord) {
+
+		await this.transact(dbClient, async (transaction) => {
+			const params_collection = makeHostStatusLogParams();
+			let builder = this.build_request(transaction, params_collection.host_status_log_params);
+			let pvalues = builder.param_values; 
+			const status_result = await builder.request.query(
+				`CALL network.update_host_status($1, $2, $3, $4, $5, $6, $7)`
+			, pvalues);
+
+			await transaction.commit();
+		});
+	}
+
 }
 
 

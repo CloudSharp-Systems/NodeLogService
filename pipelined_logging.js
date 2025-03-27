@@ -1,8 +1,8 @@
-const GCPLogger = require("./gcp_logging");
+const { GCPLogger } = require("./gcp_logging");
 const { get_new_hash_id } = require("./hash_id");
 const uuid = require('uuid');
 const LoggerStateManager = require("./logger_state_manager");
-const { DBLogger } = require("./database_logging");
+const { DBLogger, MSSQLDBLogger, PGDBLogger } = require("./database_logging");
 
 
 class PipeLinedLogger {
@@ -15,6 +15,7 @@ class PipeLinedLogger {
 
 		this._gcp_logger = null;
 		this._sqldb_logger = null;
+		this._pgdb_logger = null;
 		this._mongodb_logger = null;
 		this._sitedb_logger = null;
 
@@ -24,12 +25,16 @@ class PipeLinedLogger {
 		}
 
 		if (this._programData.projectId.SQLDB) {
-			this._sqldb_logger = new DBLogger(credentials.SQLDB, this._loggerStateManager);
+			this._sqldb_logger = new MSSQLDBLogger(credentials.SQLDB, this._loggerStateManager);
+		}
+
+		if (this._programData.projectId.COCKROACHDB) {
+			this._pgdb_logger = new PGDBLogger(credentials.COCKROACHDB, this._loggerStateManager)
 		}
 
 		if (this._programData.projectId.SITEDB) {
 			if (credentials.SITEDB == credentials.SQLDB) this._sitedb_logger = this._sqldb_logger;
-			else this._sitedb_logger = new DBLogger(credentials.SITEDB, this._loggerStateManager);
+			else this._sitedb_logger = new PGDBLogger(credentials.SITEDB, this._loggerStateManager);
 		}
 	}
 
@@ -48,6 +53,14 @@ class PipeLinedLogger {
         		});
 		}
 
+		if (this._pgdb_logger) {
+			const programDataRef = this._programData;
+			const PGDBProgramData = { ...programDataRef, projectId: programDataRef.projectId.COCKROACHDB };
+        		await this._pgdb_logger.client_run(async (dbClient) => {
+                		await this._pgdb_logger.writeLogEntry(dbClient, PGDBProgramData, this._loggerStateManager.getState(GCPLogger.LOG_METADATA_STATE), log.note);
+        		});
+		}
+
 		if (this._sitedb_logger) {
 			const programDataRef = this._programData;
 			const SITEDBProgramData = { ...programDataRef, projectId: programDataRef.projectId.SITEDB };
@@ -56,7 +69,7 @@ class PipeLinedLogger {
 			});
 		}
 
-        	this._loggerStateManager.clearStates();
+        this._loggerStateManager.clearStates();
 	}
 
 
