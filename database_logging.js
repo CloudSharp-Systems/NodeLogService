@@ -245,7 +245,7 @@ class PGDBLogger extends DBLogger {
 
 		await job(dbClient);
 
-		dbClient.end();
+		await dbClient.end();
 	}
 
 	async transact(dbClient, job) {
