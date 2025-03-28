@@ -225,8 +225,6 @@ class MSSQLDBLogger extends DBLogger {
 			const status_result = await builder.request.query(
 				`EXEC NETWORK.UPDATE_HOST_STATUS @${pnames[0]}, @${pnames[1]}, @${pnames[2]}, @${pnames[3]}, @${pnames[4]}, @${pnames[5]}, @${pnames[6]}`
 			);
-
-			await transaction.commit();
 		});
 	}
 
@@ -307,8 +305,6 @@ class PGDBLogger extends DBLogger {
 			const status_result = await builder.request.query(
 				`CALL network.update_host_status($1, $2, $3, $4, $5, $6, $7)`
 			, pvalues);
-
-			await transaction.commit();
 		});
 	}
 
