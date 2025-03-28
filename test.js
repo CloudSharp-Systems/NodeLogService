@@ -24,10 +24,10 @@ const metadata = {
 };
 
 const mockSystemHealthTraceRecord = {
-	host_IP: "CloudSharp-Mongo",
+	host_IP: "cloudsharp-mongo.xiaxgpf.mongodb.net",
 	port: "27017",
 	system_status: "NORMAL",
-	trace_ID: `CloudSharpWebMonitor_CloudSharp-Mongo_${new Date()}`,
+	trace_ID: `CloudSharpWebMonitor_cloudsharp-mongo.xiaxgpf.mongodb.net_${(new Date()).valueOf()}`,
 	message: "MOCK get success - 200",
 	latency: 6.389
 };

@@ -219,7 +219,7 @@ class MSSQLDBLogger extends DBLogger {
 	async writeHostStatusLog(dbClient, programData, systemHealthTraceRecord) {
 
 		await this.transact(dbClient, async (transaction) => {
-			const params_collection = makeHostStatusLogParams();
+			const params_collection = makeHostStatusLogParams(programData, systemHealthTraceRecord);
 			let builder = this.build_request(transaction.request(), params_collection.host_status_log_params);
 			let pnames = builder.param_names; 
 			const status_result = await builder.request.query(
@@ -301,7 +301,7 @@ class PGDBLogger extends DBLogger {
 	async writeHostStatusLog(dbClient, programData, systemHealthTraceRecord) {
 
 		await this.transact(dbClient, async (transaction) => {
-			const params_collection = makeHostStatusLogParams();
+			const params_collection = makeHostStatusLogParams(programData, systemHealthTraceRecord);
 			let builder = this.build_request(transaction, params_collection.host_status_log_params);
 			let pvalues = builder.param_values; 
 			const status_result = await builder.request.query(
